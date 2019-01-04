@@ -102,3 +102,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# user added -------------------------------------------------------------------
+# ignore an entire directory
+/dumped_data/
+/saved_pages_for_testing/
+# Ignore whatever the geckodriver is dumping
+geckodriver.log
+.DS_Store
