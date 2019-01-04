@@ -33,8 +33,6 @@ class zillow_zipcode_search:
     def __init__(self):
         # Load the firefox web driver.
         self.driver         = webdriver.Firefox()
-        self.do_next_page   = 1
-        self.no_results     = 0
 
     # Move to the next page in the search.
     def next_page(self):
@@ -86,21 +84,32 @@ class zillow_zipcode_search:
         dump_filename = self.current_zip + ".csv"
         dump_path = dump_location + dump_filename
 
+        # When pandas writes to CSV it converts the datatypes.  This
+        # means that the newly created dataframe and the one read from
+        # the previously have different dtypes.  This means pandas thinks
+        #  they are different and creates new columns with the same name
+        # but different dtypes.  Or something.  To get around this you
+        # can define the dtype when the dataframe is created or just save
+        #  the present dataframe and reload it.  For now, do the latter.
+        dataframe_in.to_csv('temp.csv', index=False)
+        self.df_new = pd.read_csv('temp.csv')
+
         # Load the old data and check the current list against the saved list
         #  and only add new listings.  This might be slow.
         try:
-            self.df = pd.read_csv(dump_path)
-            # When the dataframe is dumped zillow_id is converted to an
-            # int64.  This means you need to convert it to object so that the
-            #  types of the entries in the column match and ca be merged.
-            self.df['zillow_id'] = self.df['zillow_id'].astype('object')
-            dataframe_in = pd.merge(self.df, dataframe_in, how='outer',
-                                   on='zillow_id')
-            # dataframe_in = dataframe_in.merge(df, how='outer', on='zillow_id')
-        except IOError:
-            1+1 # Do nothing
+            self.df_old = pd.read_csv(dump_path)
 
-        dataframe_in.to_csv(dump_path)
+            result = pd.merge(self.df_old, self.df_new, how='outer',
+                                   on='zillow_id')
+            result = pd.concat([self.df_old, self.df_new])
+            result = result.drop_duplicates(keep='first')
+
+        except IOError:
+            result = self.df_new
+
+        result.to_csv(dump_path, index=False)
+        # Remove the temp file.
+        os.remove('temp.csv')
 
     def close_browser(self):
         self.driver.close()
@@ -112,6 +121,10 @@ class zillow_zipcode_search:
 
     # Define a search function that updates the page to load.
     def search_zipcode(self, zipcode_in):
+        # Reset the flags for doing back to back zipcode searches
+        self.do_next_page   = 1
+        self.no_results     = 0
+
         print('Currently scraping zip code: ' + zipcode_in)
         self.page_number = 1
         self.current_zip = zipcode_in
@@ -133,7 +146,7 @@ class zillow_zipcode_search:
             # Scrape the current page
             self.instance_zillow_scrape.get_houses(self.current_page)
             # Pause to avoid captchas
-            time.sleep(np.random.uniform(0, 10))
+            time.sleep(np.random.uniform(2, 10))
             # Goto the next page
             if self.do_next_page == 1:
                 self.next_page()
@@ -152,9 +165,10 @@ class zillow_zipcode_search:
 # displayed on it.
 class zillow_parser:
     def __init__(self):
-        # Build an empty dataframe to be replaced later
+        # Build the master dataframe
         self.zillow_data_master = pd.DataFrame(
             columns=shared_res.pandas_column_names)
+
 
     # This function extracts all the houses list on the current page,
     # which is html as extracted from the selenium instance of the web
@@ -272,9 +286,9 @@ class zillow_parser:
 some_zillow_zipcode_search = zillow_zipcode_search()
 
 # Run a search for a zipcode
-# some_zillow_zipcode_search.search_zipcode('94027')
+# some_zillow_zipcode_search.search_zipcode('94025')
 
-for H in shared_res.napa_county_zip:
+for H in shared_res.santa_clara_county_zip:
     some_zillow_zipcode_search.search_zipcode(H)
 
 
