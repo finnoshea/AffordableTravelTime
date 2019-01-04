@@ -102,7 +102,7 @@ class zillow_zipcode_search:
             result = pd.merge(self.df_old, self.df_new, how='outer',
                                    on='zillow_id')
             result = pd.concat([self.df_old, self.df_new])
-            result = result.drop_duplicates(keep='first')
+            result = result.drop_duplicates(subset='zillow_id', keep='first')
 
         except IOError:
             result = self.df_new
