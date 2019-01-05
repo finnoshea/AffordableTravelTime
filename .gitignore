@@ -110,3 +110,5 @@ venv.bak/
 # Ignore whatever the geckodriver is dumping
 geckodriver.log
 .DS_Store
+#ignore the credentials file
+credentials.json
