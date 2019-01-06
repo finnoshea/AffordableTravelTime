@@ -6,6 +6,7 @@ __license__ = "GPL"
 __version__ = "0.0"
 __status__ = "Development"
 
+import numpy as np
 
 # names of the columns in the pandas dataframe
 pandas_column_names = ['zillow_id',
@@ -32,6 +33,32 @@ pandas_column_names = ['zillow_id',
                        'morning_transit_duration',
                        'evening_transit_duration']
 
+# all the travel times are integer numbers of seconds, but numpy can't handle
+# NaNs in int64, so make them floats
+# see: http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na
+pandas_dtypes = {'zillow_id': np.int64,
+                 'zillow_addressStreet': np.str,
+                 'zillow_addressCity': np.str,
+                 'zillow_addressState': np.str,
+                 'zillow_zipcode': np.int64,
+                 'zillow_features': np.str,
+                 'zillow_price': np.str,
+                 'zillow_longitude': np.float64,
+                 'zillow_latitude': np.float64,
+                 'zillow_status': np.str,
+                 'zillow_homeType': np.str,
+                 'date_scraped': np.str,
+                 'location': np.str,
+                 'google_start_address': np.str,
+                 'google_start_location': np.str,
+                 'google_end_address': np.str,
+                 'google_end_location': np.str,
+                 'morning_drive_duration': np.float64,
+                 'morning_drive_duration_with_traffic': np.float64,
+                 'evening_drive_duration': np.float64,
+                 'evening_drive_duration_with_traffic': np.float64,
+                 'morning_transit_duration': np.float64,
+                 'evening_transit_duration': np.float64}
 
 # Grabbed from http://www.city-data.com/county/Santa_Clara_County-CA.html
 santa_clara_county_zip ='\
