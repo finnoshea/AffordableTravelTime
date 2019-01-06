@@ -42,14 +42,6 @@ class zillow_zipcode_search:
     # Get the source for the current page to pass to BeautifulSoup
     # Transfer the page source into BeautifulSoup.
     def get_current_page(self):
-        # Initial page after zipcode search.
-        # self.page_to_load = "file://" + os.getcwd() + \
-        #                     "/saved_pages_for_testing/94025_SFH.html"
-        # self.page_to_load = "file://" + os.getcwd() + \
-        #                     "/saved_pages_for_testing/94089_SFH.html"
-        # No matching results
-        # self.page_to_load = "file://" + os.getcwd() + \
-        #                     "/saved_pages_for_testing/94025_NMR.html"
         self.driver.get(self.page_to_load)
         self.current_page = self.driver.page_source  # extract the source for
         # BeautifulSoup
@@ -68,8 +60,17 @@ class zillow_zipcode_search:
         if not no_next_page:
             self.do_next_page = 0
 
+        # # Test to see if zillow says the zipcode is deprected.  If so,
+        # # stop searching.
+        # deprecated_zip = soup.findAll("div", {"class":"deprecated-zipcode"})
+        # if deprecated_zip:
+        #     self.no_results = 1
+        #     print('Zillow says this zip code is deprecated.')
+
         # Test to see if there are any results on this page.  If not,
-        # tell the iterate to stop trying to change pages.
+        # tell the iterate to stop trying to change pages.  With the update
+        # above which checks for a next button this test is rarely true,
+        # but it does rarely come up, so I've left it here.
         no_results = soup.findAll("h3", {"class": "zsg-content_collapsed"})
         try:
             if no_results[0].text == 'No matching results...':
@@ -286,9 +287,9 @@ class zillow_parser:
 some_zillow_zipcode_search = zillow_zipcode_search()
 
 # Run a search for a zipcode
-# some_zillow_zipcode_search.search_zipcode('94025')
+# some_zillow_zipcode_search.search_zipcode('94101')
 
-for H in shared_res.santa_clara_county_zip:
+for H in shared_res.contra_costa_county_zip:
     some_zillow_zipcode_search.search_zipcode(H)
 
 

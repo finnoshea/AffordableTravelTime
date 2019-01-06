@@ -112,3 +112,5 @@ geckodriver.log
 .DS_Store
 #ignore the credentials file
 credentials.json
+# Ignore test files
+test.py
