@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Shared resources, so that commonly used information is all in one place.
+"""
+Shared resources, so that commonly used information is all in one place.
 """
 
 __license__ = "GPL"
