@@ -95,11 +95,13 @@ class ATTGoogleAPI:
         a pandas DataFrame where all the data work is done
 
     """
-    def __init__(self,morning_time=1551196800,evening_time=1551234600,dataframe=None):
+    def __init__(self,morning_time=1551196800,
+                      evening_time=1551234600,
+                      dataframe=None):
         self.morning_time = morning_time        # depart for work at this time (8:00 AM PST)
         self.evening_time = evening_time        # depart for home at this time (5:30 PM PST)
         self.SLAC_address = '2575 Sand Hill Rd, Menlo Park, CA 94025'
-        self.SLAC_location = '37.4200115,-122.203196' # coords of SLAC gate
+        self.SLAC_location = '37.4200115,-122.203196'
         self.default_address = '1543 Oriole Ave, Sunnyvale, CA 94087' # default
         self.default_location = '37.342957,-122.0108682' # matches the default
         self.column_names = shared_res.pandas_column_names
@@ -172,7 +174,10 @@ class ATTGoogleAPI:
         unnamed string that the Google API can interpret of the type '1.0,-2.0'
         """
         info_dict = self.gmaps.geocode(address=address)
-        return info_dict[0]['geometry']['location']
+        if len(info_dict) > 0:
+            return info_dict[0]['geometry']['location']
+        else:
+            return None
 
 
     def convert_coords(self,lat=None,lng=None):
@@ -302,16 +307,11 @@ class ATTGoogleAPI:
         #finally call the API!
         # the api says it can't be called with 'transit' and a traffic_model
         # but it doesn't throw an error, so whatever
-        try:
-            info_dict = self.gmaps.directions(origin=origin,
-                                              destination=destination,
-                                              departure_time=departure_time,
-                                              mode=mode,
-                                              traffic_model='best_guess')
-        except googlemaps.exceptions.Timeout:
-            print('Calls to the Google API are being rejected.')
-            print('Is it likely you are over your quota.')
-            raise googlemaps.exceptions.Timeout
+        info_dict = self.google_dir_wrapper(origin=origin,
+                                            destination=destination,
+                                            departure_time=departure_time,
+                                            mode=mode)
+
         # print('****************************************************')
         # print('****************************************************')
         # print('Origin: {:s}'.format(location))
@@ -340,7 +340,10 @@ class ATTGoogleAPI:
         duration = info_dict[0]['legs'][0]['duration']['value']
         if mode == 'driving':
             # an integer, number of seconds:
-            duration_in_traffic = info_dict[0]['legs'][0]['duration_in_traffic']['value'] # integer, number of seconds
+            try:
+                duration_in_traffic = info_dict[0]['legs'][0]['duration_in_traffic']['value'] # integer, number of seconds
+            except KeyError: # sometimes it doesn't exist for some reason
+                duration_in_traffic = np.inf
         else:
             duration_in_traffic = None
 
@@ -350,6 +353,62 @@ class ATTGoogleAPI:
                 end_location,
                 duration,
                 duration_in_traffic)
+
+    def google_dir_wrapper(self,origin,destination,departure_time,mode):
+        """
+        call to the Google API directions method with custom error handling.
+
+        Parameters
+        ----------
+        origin: string
+            where the travel starts
+
+        destination: string
+            where the travel ends
+
+        departure_time: integer
+            time of departure in seconds from January 1, 1970
+
+        mode: string
+            travel mode supported by the Google API
+
+
+        returns
+        -------
+        the dictionary that the Google API returns
+        """
+
+        try:
+            info_dict = self.gmaps.directions(origin=origin,
+                                              destination=destination,
+                                              departure_time=departure_time,
+                                              mode=mode,
+                                              traffic_model='best_guess')
+        except googlemaps.exceptions.Timeout:
+            print('Calls to the Google API are being rejected.')
+            print('Is it likely you are over your quota.')
+            raise googlemaps.exceptions.Timeout
+        except googlemaps.exceptions.ApiError:
+            print('Human readable address could not be found by the API.')
+            print('Typically, this is an address so new Google does not ')
+            print('yet know about it.  I will chop off the number and see')
+            print('if that works...')
+            if origin == self.SLAC_address: # going home
+                destination = ' '.join(destination.split(' ')[1:])
+            else: # going to SLAC
+                origin = ' '.join(origin.split(' ')[1:])
+            try:
+                info_dict = self.gmaps.directions(origin=origin,
+                                                  destination=destination,
+                                                  departure_time=departure_time,
+                                                  mode=mode,
+                                                  traffic_model='best_guess')
+            except googlemaps.exceptions.ApiError:
+                print('Nope, that did not help.  Returning empty dictionary.')
+                return {}
+
+        return info_dict
+
 
     def load_files(self,dump_location=None,save_file='saved_data.hdf5'):
         """
@@ -408,6 +467,9 @@ class ATTGoogleAPI:
         location that contains a string concatenation of both that the Google
         API can interpret.
 
+        Makes sure that 'zillow_addressStreet', 'zillow_addressCity' and
+        'zillow_addressState' are of type str or unicode.
+
 
         Parameters
         ----------
@@ -448,6 +510,15 @@ class ATTGoogleAPI:
                               self.convert_coords(row['zillow_latitude'],
                               row['zillow_longitude']),axis=1)
 
+        # make sure the address strings are valid
+        def wrap_str(x):
+            return isinstance(x,(str,unicode))
+        mask1 = self.df['zillow_addressStreet'].apply(wrap_str)
+        mask2 = self.df['zillow_addressCity'].apply(wrap_str)
+        mask3 = self.df['zillow_addressState'].apply(wrap_str)
+        mask = mask1 & mask2 & mask3
+        self.df = self.df[mask]
+
 
     def add_data_to_df(self,index,column,data):
         """
@@ -458,15 +529,18 @@ class ATTGoogleAPI:
 
         Parameters
         ----------
-        index: the index of the dataframe row to add data to
+        index: pandas index
+            the index of the dataframe row to add data to
 
-        column: the name of the column to add data to
+        column: string
+            the name of the column to add data to
 
-        data: the data to be stored
+        data: user-defined
+            the data to be stored
 
         Returns
         -------
-        nothing
+        nothing, df is modified in place
         """
         if isinstance(self.df.loc[index,column],list): # if a list
             self.df.loc[index,column].append(data) # append the next thing
