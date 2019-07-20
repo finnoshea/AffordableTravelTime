@@ -166,8 +166,8 @@ san_mateo_county_zip = san_mateo_county_zip.split(' ')
 
 # http://www.city-data.com/county/San_Francisco_County-CA.html
 san_francisco_county_zip ='\
-94102 \
 94103 \
+94102 \
 94104 \
 94105 \
 94107 \

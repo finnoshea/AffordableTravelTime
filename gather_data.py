@@ -296,8 +296,11 @@ class zillow_parser:
 # SBuild the instances needed to perform a zipcode search
 some_zillow_zipcode_search = zillow_zipcode_search()
 
-# Run a search for a zipcode
-# some_zillow_zipcode_search.search_zipcode('94101')
+# # Search a single zipcode
+# some_zillow_zipcode_search.search_zipcode('94103')
+# some_zillow_zipcode_search.close_browser()
+
+# Run a search through all the zipcodes in a county.
 P = shared_res.san_francisco_county_zip
 jj = len(P)
 ii = 1
@@ -306,4 +309,3 @@ for H in P:
     some_zillow_zipcode_search.search_zipcode(H)
     ii = ii + 1
 some_zillow_zipcode_search.close_browser()
-
