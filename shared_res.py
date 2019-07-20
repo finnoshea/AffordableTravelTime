@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-"""
-Shared resources, so that commonly used information is all in one place.
+"""Shared resources, so that commonly used information is all in one place.
 """
 
 __license__ = "GPL"
 __version__ = "0.0"
 __status__ = "Development"
 
-import numpy as np
 
 # names of the columns in the pandas dataframe
 pandas_column_names = ['zillow_id',
@@ -21,7 +19,6 @@ pandas_column_names = ['zillow_id',
                        'zillow_latitude',
                        'zillow_status',
                        'zillow_homeType',
-                       'zillow_days_on',
                        'date_scraped',
                        'location',
                        'google_start_address',
@@ -35,33 +32,6 @@ pandas_column_names = ['zillow_id',
                        'morning_transit_duration',
                        'evening_transit_duration']
 
-# all the travel times are integer numbers of seconds, but numpy can't handle
-# NaNs in int64, so make them floats
-# see: http://pandas.pydata.org/pandas-docs/stable/gotchas.html#support-for-integer-na
-pandas_dtypes = {'zillow_id': np.int64,
-                 'zillow_addressStreet': np.str,
-                 'zillow_addressCity': np.str,
-                 'zillow_addressState': np.str,
-                 'zillow_zipcode': np.int64,
-                 'zillow_features': np.str,
-                 'zillow_price': np.str,
-                 'zillow_longitude': np.float64,
-                 'zillow_latitude': np.float64,
-                 'zillow_status': np.str,
-                 'zillow_homeType': np.str,
-                 'zillow_days_on': np.int64,
-                 'date_scraped': np.str,
-                 'location': np.str,
-                 'google_start_address': np.str,
-                 'google_start_location': np.str,
-                 'google_end_address': np.str,
-                 'google_end_location': np.str,
-                 'morning_drive_duration': np.float64,
-                 'morning_drive_duration_with_traffic': np.float64,
-                 'evening_drive_duration': np.float64,
-                 'evening_drive_duration_with_traffic': np.float64,
-                 'morning_transit_duration': np.float64,
-                 'evening_transit_duration': np.float64}
 
 # Grabbed from http://www.city-data.com/county/Santa_Clara_County-CA.html
 santa_clara_county_zip ='\
@@ -196,7 +166,6 @@ san_mateo_county_zip = san_mateo_county_zip.split(' ')
 
 # http://www.city-data.com/county/San_Francisco_County-CA.html
 san_francisco_county_zip ='\
-94101 \
 94102 \
 94103 \
 94104 \

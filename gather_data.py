@@ -47,16 +47,6 @@ class zillow_zipcode_search:
         # BeautifulSoup
         return (self.current_page)
 
-    # For testing purposed load some saved pages.
-    def get_saved_page(self):
-        saved_location =  os.getcwd() +  \
-                                         "/saved_pages_for_testing/"
-        saved_filename = '94804_OLD.html'
-        self.driver.get('file://' + saved_location + saved_filename)
-        self.current_page = self.driver.page_source  # extract the source for
-        # BeautifulSoup
-        return (self.current_page)
-
     # Run tests on the current page, you're looking for whether the page is a
     #  captcha page or whether there are results on the current page and a
     # few other things.
@@ -69,8 +59,18 @@ class zillow_zipcode_search:
         no_next_page = soup.findAll("li", {"class": "zsg-pagination-next"})
         if not no_next_page:
             self.do_next_page = 0
+        # Zillow has been updated so that this class always exists,
+        # when there aren't anymore pages the href is missing. Look for a
+        # missing href.
+        try:
+            if not no_next_page[0].contents:
+                print("Missing NEXT page link, no more cards expected.")
+                self.do_next_page = 0
+        except IndexError:
+            print("Missing pagination card, no more cards expected.")
+            self.do_next_page = 0
 
-        # # Test to see if zillow says the zipcode is deprected.  If so,
+        # # Test to see if zillow says the zipcode is deprecated.  If so,
         # # stop searching.
         # deprecated_zip = soup.findAll("div", {"class":"deprecated-zipcode"})
         # if deprecated_zip:
@@ -91,7 +91,7 @@ class zillow_zipcode_search:
 
     # Dump the current master dataframe once the zipcode search is complete.
     def dump_zipcode_dataframe(self, dataframe_in):
-        dump_location = os.getcwd() +  "/dumped_data/"
+        dump_location = os.getcwd() +  "/July_20th_2019/"
         dump_filename = self.current_zip + ".csv"
         dump_path = dump_location + dump_filename
 
@@ -110,9 +110,10 @@ class zillow_zipcode_search:
         try:
             self.df_old = pd.read_csv(dump_path)
 
-            result = pd.concat([self.df_old, self.df_new],
-                                            sort='True')
-            result = result.drop_duplicates(subset='zillow_id', keep='last')
+            result = pd.merge(self.df_old, self.df_new, how='outer',
+                                   on='zillow_id')
+            result = pd.concat([self.df_old, self.df_new])
+            result = result.drop_duplicates(subset='zillow_id', keep='first')
 
         except IOError:
             result = self.df_new
@@ -185,11 +186,6 @@ class zillow_parser:
     # browser.  It returns an iterable list of what zillow calls "cards" that
     #  contain all the information you wish to extract like location and
     # price.  When done, the data is appended to the master dataframe.
-    #
-    # card_entry is one "card" or search result entry.  A search on zillow
-    # returns a bunch of cards which and image and data on the housing unit.
-    #  They are stored in the member variable photo_cards.
-
     def get_houses(self, current_page):
         soup = BeautifulSoup(current_page)
         self.photo_cards = soup.findAll("article",
@@ -232,16 +228,6 @@ class zillow_parser:
         address = address[0].text
         return(price, address)
 
-    # Get the number of days the housing unit has been on zillow.
-    def get_days_on(self, card_entry):
-        temp = card_entry.findAll("ul", {"class" : "zsg-list_inline "
-                                          "zsg-photo-card-badge"})
-        try:
-            days_on = np.int64(temp[0].text.split(' ')[0])
-        except ValueError:
-            days_on = 0
-        return(days_on)
-
     # Get the address, this has the information nicely divided unlike the
     # card caption
     def get_address(self, card_entry):
@@ -257,7 +243,7 @@ class zillow_parser:
 
         return(zipcode, addressStreet, addressCity, addressState)
 
-    # Get the home type, i.e. manufactured, apartment, whatever.
+    # Get the home type, i.e. manufactured, apartement, whatever.
     # All of the data you captured above is listed here, so you maybe be able
     #  to redo this whole class with one function call.
     def get_home_type(self, card_entry):
@@ -284,7 +270,6 @@ class zillow_parser:
             zipcode, addressStreet, addressCity, addressState = \
                 self.get_address(k)
             homeType = self.get_home_type(k)
-            days_on = self.get_days_on(k)
 
             # Drop the information into the dataframe.  I want to keep all
             # the pushing of data into the dataframe in one location to make
@@ -300,7 +285,6 @@ class zillow_parser:
             self.zillow_data['zillow_addressCity'][m] = addressCity
             self.zillow_data['zillow_addressState'][m] = addressState
             self.zillow_data['zillow_homeType'][m] = homeType
-            self.zillow_data['zillow_days_on'][m] = days_on
             self.zillow_data['date_scraped'][m] = datetime.datetime.now().isoformat()
             # Update the iterator
             m = m + 1
@@ -313,9 +297,13 @@ class zillow_parser:
 some_zillow_zipcode_search = zillow_zipcode_search()
 
 # Run a search for a zipcode
-some_zillow_zipcode_search.search_zipcode('94804')
-
-# for H in shared_res.contra_costa_county_zip:
-#     some_zillow_zipcode_search.search_zipcode(H)
-
+# some_zillow_zipcode_search.search_zipcode('94101')
+P = shared_res.san_francisco_county_zip
+jj = len(P)
+ii = 1
+for H in P:
+    print "Searching %i of %i" % (ii, jj)
+    some_zillow_zipcode_search.search_zipcode(H)
+    ii = ii + 1
+some_zillow_zipcode_search.close_browser()
 
